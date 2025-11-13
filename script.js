@@ -1,294 +1,229 @@
 // === EVIDENCIAS FOTOGRÁFICAS ===
 // Envía reporte, fotos y video al Apps Script de Google Drive
 
-const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwoqjgTrz68p-_KFQAFh2Irfi77DP4pxSFZRiEYznLVmIcMvgRD_X35hbGuP9oZCt6o/exec"; // <-- reemplaza con tu URL /exec del Apps Script
+// URL de tu Apps Script publicado (reemplázalo con el tuyo)
+const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwoqjgTrz68p-_KFQAFh2Irfi77DP4pxSFZRiEYznLVmIcMvgRD_X35hbGuP9oZCt6o/exec";
 
-document.addEventListener("DOMContentLoaded", () => {
-  const formContainer = document.getElementById("inspection-form");
-  const video = document.getElementById("video");
-  const canvas = document.getElementById("canvas");
-  const startBtn = document.getElementById("start-btn");
-  const stopBtn = document.getElementById("stop-btn");
-  const captureBtn = document.getElementById("capture-btn");
-  const videoBtn = document.getElementById("video-btn");
-  const pdfBtn = document.getElementById("pdf-btn");
-  const zipBtn = document.getElementById("zip-btn");
-  const thumbnailsDiv = document.getElementById("photo-thumbnails");
-  const videoThumbs = document.getElementById("video-thumbnails");
-  const firmaCanvas = document.getElementById("firma-canvas");
-  const firmaCtx = firmaCanvas.getContext("2d");
-  const buscarBtn = document.getElementById("buscar-datos");
-
-  let photos = [];
-  let recordedVideoBlob = null;
-  let currentStream = null;
-  let currentPosition = null;
-  let mediaRecorder;
-  let videoChunks = [];
-
-  // === 1️⃣ CARGAR FORMULARIO JSON ===
-// === CARGAR FORMULARIO JSON (compatible y con diagnóstico) ===
+// === CARGAR FORMULARIO ===
 async function cargarFormulario() {
-  const formContainer = document.getElementById("inspection-form");
-  formContainer.innerHTML = "<p>Cargando formulario...</p>";
-
+  const cont = document.getElementById("inspection-form");
+  cont.innerHTML = "⏳ Cargando formulario...";
   try {
-    const res = await fetch("formulario.json", { cache: "no-store" });
-    if (!res.ok) throw new Error(`No se pudo cargar formulario.json (${res.status})`);
-
+    const res = await fetch("formulario.json?nocache=" + Date.now());
     const data = await res.json();
-    console.log("📄 Datos de formulario.json cargados:", data);
+    cont.innerHTML = "";
+    const secciones = Array.isArray(data) ? data : data.secciones;
 
-    // Detectar si es array o tiene propiedad "secciones"
-    const secciones = Array.isArray(data)
-      ? data
-      : Array.isArray(data.secciones)
-      ? data.secciones
-      : [];
-
-    if (!secciones.length) {
-      throw new Error("El archivo formulario.json no contiene secciones válidas.");
-    }
-
-    formContainer.innerHTML = "";
-
-    secciones.forEach((sec, i) => {
+    secciones.forEach(sec => {
       const fieldset = document.createElement("fieldset");
       const legend = document.createElement("legend");
-      legend.textContent = sec.titulo || `Sección ${i + 1}`;
+      legend.textContent = sec.titulo;
       fieldset.appendChild(legend);
-
-      if (!Array.isArray(sec.campos)) {
-        console.warn(`⚠️ La sección '${sec.titulo}' no tiene 'campos' válidos.`);
-        return;
-      }
 
       sec.campos.forEach(c => {
         const label = document.createElement("label");
-        label.textContent = c.etiqueta || c.id || "Campo sin nombre";
+        label.textContent = c.etiqueta;
         fieldset.appendChild(label);
 
         let input;
-        if (c.tipo === "select" && Array.isArray(c.opciones)) {
+        if (c.tipo === "select") {
           input = document.createElement("select");
           c.opciones.forEach(op => {
-            const opt = document.createElement("option");
-            opt.value = op;
-            opt.textContent = op;
-            input.appendChild(opt);
+            const o = document.createElement("option");
+            o.textContent = op;
+            input.appendChild(o);
           });
-        } else if (c.tipo === "textarea") {
-          input = document.createElement("textarea");
-        } else {
+        } else if (c.tipo === "textarea") input = document.createElement("textarea");
+        else {
           input = document.createElement("input");
-          input.type = c.tipo || "text";
+          input.type = c.tipo;
         }
-
-        input.id = c.id || `campo_${Math.random().toString(36).substring(2, 8)}`;
+        input.id = c.id;
         input.required = true;
         fieldset.appendChild(input);
       });
 
-      formContainer.appendChild(fieldset);
+      cont.appendChild(fieldset);
     });
-
-    console.log("✅ Formulario cargado correctamente.");
-  } catch (err) {
-    console.error("❌ Error al cargar formulario:", err);
-    formContainer.innerHTML = `<p style="color:red;">Error al cargar formulario: ${err.message}</p>`;
+  } catch (e) {
+    cont.innerHTML = "Error al cargar formulario: " + e.message;
   }
 }
 
+// === BUSCAR TITULAR ===
+async function buscarTitular() {
+  const codigo = document.getElementById("codigo_usuario").value.trim();
+  if (!codigo) return alert("Ingrese un código de suministro.");
 
-  // === 2️⃣ BUSCAR DATOS EN BASE JSON ===
-  buscarBtn.onclick = async () => {
-    const codigo = document.getElementById("codigo-suministro").value.trim();
-    if (!codigo) return alert("Ingrese un código de suministro.");
+  try {
+    const res = await fetch("base_titulares.json?nocache=" + Date.now());
+    const data = await res.json();
+    const titular = data.find(u => u.codigo_usuario === codigo);
 
-    try {
-      const res = await fetch("base_titulares.json");
-      if (!res.ok) throw new Error("No se pudo cargar base_titulares.json");
-      const base = await res.json();
+    if (!titular) return alert("No se encontró el suministro.");
 
-      const usuario = base.find(
-        u => String(u.codigo_usuario).trim().toLowerCase() === codigo.trim().toLowerCase()
-      );
-
-      if (!usuario) {
-        alert("⚠️ No se encontró el suministro.");
-        console.warn("Ejemplo de código:", base[0]?.codigo_usuario);
-        return;
-      }
-
-      const camposFormulario = Array.from(
-        document.querySelectorAll("#inspection-form input, #inspection-form select, #inspection-form textarea")
-      );
-
-      Object.entries(usuario).forEach(([clave, valor]) => {
-        const exacto = document.getElementById(clave);
-        if (exacto) {
-          exacto.value = valor;
-          return;
-        }
-        const parcial = camposFormulario.find(el =>
-          el.id.toLowerCase().includes(clave.toLowerCase()) ||
-          (el.previousElementSibling &&
-            el.previousElementSibling.textContent.toLowerCase().includes(clave.toLowerCase()))
-        );
-        if (parcial) parcial.value = valor;
-      });
-
-      alert(`✅ Datos cargados para ${usuario.nombres_apellidos || "el suministro ingresado"}.`);
-    } catch (err) {
-      alert("Error al cargar base_titulares.json: " + err.message);
+    for (const k in titular) {
+      const input = document.getElementById(k);
+      if (input) input.value = titular[k];
     }
-  };
 
-  // === 3️⃣ FIRMA DIGITAL ===
-  firmaCtx.lineWidth = 2;
-  let dibujando = false;
-  const getCoords = e => {
-    const rect = firmaCanvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return { x: clientX - rect.left, y: clientY - rect.top };
-  };
-  firmaCanvas.addEventListener("mousedown", e => {
-    dibujando = true;
-    const { x, y } = getCoords(e);
-    firmaCtx.beginPath();
-    firmaCtx.moveTo(x, y);
-  });
-  firmaCanvas.addEventListener("mousemove", e => {
-    if (!dibujando) return;
-    const { x, y } = getCoords(e);
-    firmaCtx.lineTo(x, y);
-    firmaCtx.stroke();
-  });
-  firmaCanvas.addEventListener("mouseup", () => (dibujando = false));
-  firmaCanvas.addEventListener("mouseleave", () => (dibujando = false));
-  firmaCanvas.addEventListener("touchstart", e => {
-    dibujando = true;
-    const { x, y } = getCoords(e);
-    firmaCtx.beginPath();
-    firmaCtx.moveTo(x, y);
-  });
-  firmaCanvas.addEventListener("touchmove", e => {
-    if (!dibujando) return;
-    e.preventDefault();
-    const { x, y } = getCoords(e);
-    firmaCtx.lineTo(x, y);
-    firmaCtx.stroke();
-  });
-  firmaCanvas.addEventListener("touchend", () => (dibujando = false));
-
-  document.getElementById("clear-firma").onclick = () =>
-    firmaCtx.clearRect(0, 0, firmaCanvas.width, firmaCanvas.height);
-
-  // === 4️⃣ CÁMARA ===
-  async function getCameraStream() {
-    return await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" },
-      audio: true
-    });
+    obtenerUbicacion();
+    alert("✅ Datos cargados del titular.");
+  } catch (e) {
+    alert("Error al cargar base: " + e.message);
   }
+}
 
-  startBtn.onclick = async () => {
-    try {
-      currentStream = await getCameraStream();
-      video.srcObject = currentStream;
-      await video.play();
-      captureBtn.disabled = false;
-      videoBtn.disabled = false;
-      stopBtn.disabled = false;
-    } catch (err) {
-      alert("Error iniciando cámara: " + err.message);
+// === GPS a UTM ===
+function obtenerUbicacion() {
+  if (!navigator.geolocation) return alert("Geolocalización no compatible.");
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const { latitude, longitude } = pos.coords;
+      const zona = 18;
+      const utm = convertirLatLonUTM(latitude, longitude, zona);
+      document.getElementById("utm_este").value = utm.este.toFixed(2);
+      document.getElementById("utm_norte").value = utm.norte.toFixed(2);
+      document.getElementById("utm_zona").value = zona;
+    },
+    err => alert("Error GPS: " + err.message)
+  );
+}
+function convertirLatLonUTM(lat, lon, zona) {
+  const a = 6378137.0;
+  const f = 1 / 298.257223563;
+  const e = Math.sqrt(f * (2 - f));
+  const k0 = 0.9996;
+  const λ0 = ((zona - 1) * 6 - 180 + 3) * (Math.PI / 180);
+  const φ = lat * (Math.PI / 180);
+  const λ = lon * (Math.PI / 180);
+  const N = a / Math.sqrt(1 - e ** 2 * Math.sin(φ) ** 2);
+  const T = Math.tan(φ) ** 2;
+  const C = (e ** 2 / (1 - e ** 2)) * Math.cos(φ) ** 2;
+  const A = Math.cos(φ) * (λ - λ0);
+  const M =
+    a *
+    ((1 - e ** 2 / 4 - (3 * e ** 4) / 64 - (5 * e ** 6) / 256) * φ -
+      ((3 * e ** 2) / 8 + (3 * e ** 4) / 32 + (45 * e ** 6) / 1024) * Math.sin(2 * φ));
+  const Este = 500000 + k0 * N * (A + ((1 - T + C) * A ** 3) / 6);
+  const Norte = k0 * (M + N * Math.tan(φ) * (A ** 2 / 2 + ((5 - T + 9 * C + 4 * C ** 2) * A ** 4) / 24));
+  return { este: Este, norte: lat < 0 ? Norte + 10000000 : Norte };
+}
+
+// === FIRMA ===
+const sigCanvas = document.getElementById("signature");
+const ctx = sigCanvas.getContext("2d");
+let drawing = false;
+sigCanvas.addEventListener("mousedown", () => (drawing = true));
+sigCanvas.addEventListener("mouseup", () => (drawing = false));
+sigCanvas.addEventListener("mousemove", dibujarFirma);
+sigCanvas.addEventListener("touchstart", () => (drawing = true));
+sigCanvas.addEventListener("touchend", () => (drawing = false));
+sigCanvas.addEventListener("touchmove", dibujarFirma);
+function dibujarFirma(e) {
+  if (!drawing) return;
+  e.preventDefault();
+  const rect = sigCanvas.getBoundingClientRect();
+  const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+  const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "black";
+  ctx.lineTo(x, y);
+  ctx.stroke();
+}
+document.getElementById("btnBorrarFirma").onclick = () => ctx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+
+// === CÁMARA ===
+let stream;
+document.getElementById("btnIniciarCamara").onclick = async () => {
+  const video = document.getElementById("video");
+  stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+  video.srcObject = stream;
+  document.getElementById("btnTomarFoto").disabled = false;
+  document.getElementById("btnDetenerCamara").disabled = false;
+};
+document.getElementById("btnDetenerCamara").onclick = () => {
+  stream?.getTracks().forEach(t => t.stop());
+  document.getElementById("btnTomarFoto").disabled = true;
+  document.getElementById("btnDetenerCamara").disabled = true;
+};
+let fotos = [];
+document.getElementById("btnTomarFoto").onclick = () => {
+  const video = document.getElementById("video");
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.drawImage(video, 0, 0);
+  const foto = canvas.toDataURL("image/jpeg");
+  fotos.push(foto);
+  const img = document.createElement("img");
+  img.src = foto;
+  img.width = 100;
+  document.getElementById("preview").appendChild(img);
+};
+
+// === PDF + ZIP ===
+document.getElementById("btnGenerarPDF").onclick = async () => {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF();
+  pdf.text("FORMATO DE INSPECCIÓN FISE", 10, 10);
+  const inputs = document.querySelectorAll("input, select, textarea");
+  let y = 20;
+  inputs.forEach(i => {
+    pdf.text(`${i.id}: ${i.value}`, 10, y);
+    y += 7;
+    if (y > 270) {
+      pdf.addPage();
+      y = 10;
     }
-  };
+  });
+  fotos.forEach((foto, idx) => {
+    pdf.addPage();
+    pdf.text(`Foto ${idx + 1}`, 10, 10);
+    pdf.addImage(foto, "JPEG", 10, 20, 180, 160);
+  });
+  const pdfBlob = pdf.output("blob");
+  const codigo = document.getElementById("codigo_usuario").value.trim() || "SIN_CODIGO";
+  const zip = new JSZip();
+  zip.file(`${codigo}_reporte.pdf`, pdfBlob);
+  fotos.forEach((f, i) => zip.file(`${codigo}_${i + 1}.jpg`, f.split(",")[1], { base64: true }));
+  const zipBlob = await zip.generateAsync({ type: "blob" });
+  saveAs(zipBlob, `${codigo}.zip`);
+};
 
-  stopBtn.onclick = () => {
-    if (currentStream) {
-      currentStream.getTracks().forEach(t => t.stop());
-      video.srcObject = null;
-    }
-  };
+// === SUBIR A DRIVE ===
+document.getElementById("btnSubirDrive").onclick = async () => {
+  const unidad = document.getElementById("unidad_negocio").value;
+  const codigo = document.getElementById("codigo_usuario").value.trim();
+  if (!unidad || !codigo) return alert("Seleccione unidad y código.");
 
-  captureBtn.onclick = () => {
-    const ctx = canvas.getContext("2d");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const coords = currentPosition
-      ? `${currentPosition.latitude.toFixed(6)}, ${currentPosition.longitude.toFixed(6)}`
-      : "Ubicación no disponible";
-    const now = new Date().toLocaleString();
-    ctx.fillStyle = "rgba(255,255,255,0.7)";
-    ctx.fillRect(10, canvas.height - 55, 420, 45);
-    ctx.fillStyle = "black";
-    ctx.fillText(now, 15, canvas.height - 30);
-    ctx.fillText(coords, 15, canvas.height - 10);
-    const photo = canvas.toDataURL("image/jpeg", 0.9);
-    photos.push(photo);
-    const img = document.createElement("img");
-    img.src = photo;
-    thumbnailsDiv.appendChild(img);
-  };
+  const zip = new JSZip();
+  fotos.forEach((f, i) => zip.file(`${codigo}_${i + 1}.jpg`, f.split(",")[1], { base64: true }));
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF();
+  pdf.text("Reporte FISE", 10, 10);
+  const pdfBlob = pdf.output("blob");
+  zip.file(`${codigo}_reporte.pdf`, pdfBlob);
+  const zipBlob = await zip.generateAsync({ type: "blob" });
 
-  // === 5️⃣ GENERAR PDF ===
-  pdfBtn.onclick = async () => {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const suministro = document.getElementById("codigo-suministro").value.trim();
-    const unidad = document.getElementById("unidad").value;
-
-    doc.setFontSize(12);
-    doc.text("FORMATO DE INSPECCIÓN DE INSTALACIÓN RER AUTÓNOMA", 10, 20);
-    doc.text(`Código de Suministro: ${suministro}`, 10, 30);
-    let y = 40;
-
-    document.querySelectorAll("#inspection-form input, #inspection-form select, #inspection-form textarea").forEach(el => {
-      const label = el.previousElementSibling ? el.previousElementSibling.textContent : el.id;
-      doc.text(`${label}: ${el.value}`, 10, y);
-      y += 7;
-      if (y > 270) {
-        doc.addPage();
-        y = 20;
-      }
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const base64Data = reader.result.split(",")[1];
+    const body = new URLSearchParams({
+      unidad,
+      suministro: codigo,
+      nombre: `${codigo}.zip`,
+      tipo: "application/zip",
+      archivo: base64Data
     });
-
-    // Firma
-    const firmaImg = firmaCanvas.toDataURL("image/png");
-    doc.addImage(firmaImg, "PNG", 10, y + 5, 80, 40);
-    y += 50;
-
-    // Agregar fotos
-    for (let i = 0; i < photos.length; i++) {
-      doc.addPage();
-      doc.text(`Foto ${i + 1}`, 10, 20);
-      doc.addImage(photos[i], "JPEG", 10, 30, 180, 130);
-    }
-
-    const pdfBlob = doc.output("blob");
-
-    // Subir a Drive
-    await subirArchivo(pdfBlob, `${suministro}_reporte.pdf`, "application/pdf", unidad, suministro);
-
-    alert(`✅ Reporte ${suministro} guardado correctamente en Google Drive (${unidad})`);
+    const res = await fetch(WEBAPP_URL, { method: "POST", body });
+    alert(await res.text());
   };
+  reader.readAsDataURL(zipBlob);
+};
 
-  // === 6️⃣ SUBIR ARCHIVOS A DRIVE ===
-  async function subirArchivo(blob, nombre, tipo, unidad, suministro) {
-    const reader = new FileReader();
-    return new Promise(resolve => {
-      reader.onloadend = async () => {
-        const base64Data = reader.result.split(",")[1];
-        const body = new URLSearchParams({ unidad, suministro, nombre, tipo, archivo: base64Data });
-        const res = await fetch(WEBAPP_URL, { method: "POST", body });
-        if (res.ok) console.log("Subido:", nombre);
-        resolve();
-      };
-      reader.readAsDataURL(blob);
-    });
-  }
-});
-
+// === INICIO ===
+document.addEventListener("DOMContentLoaded", cargarFormulario);
+document.getElementById("btnBuscar").onclick = buscarTitular;
