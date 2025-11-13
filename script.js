@@ -27,49 +27,59 @@ document.addEventListener("DOMContentLoaded", () => {
   let videoChunks = [];
 
   // === 1️⃣ CARGAR FORMULARIO JSON ===
-  async function cargarFormulario() {
-    try {
-      const res = await fetch("formulario.json");
-      if (!res.ok) throw new Error("No se encontró formulario.json");
-      const data = await res.json();
-      formContainer.innerHTML = "";
-      data.secciones.forEach(sec => {
-        const fieldset = document.createElement("fieldset");
-        const legend = document.createElement("legend");
-        legend.textContent = sec.titulo;
-        fieldset.appendChild(legend);
+// === CARGAR FORMULARIO JSON (compatible con tu estructura) ===
+async function cargarFormulario() {
+  try {
+    const res = await fetch("formulario.json");
+    if (!res.ok) throw new Error(`No se pudo cargar formulario.json (${res.status})`);
 
-        sec.campos.forEach(c => {
-          const label = document.createElement("label");
-          label.textContent = c.etiqueta;
-          fieldset.appendChild(label);
+    const data = await res.json();
+    const secciones = Array.isArray(data) ? data : data.secciones;
 
-          let input;
-          if (c.tipo === "select") {
-            input = document.createElement("select");
-            c.opciones.forEach(op => {
-              const o = document.createElement("option");
-              o.value = op;
-              o.textContent = op;
-              input.appendChild(o);
-            });
-          } else if (c.tipo === "textarea") {
-            input = document.createElement("textarea");
-          } else {
-            input = document.createElement("input");
-            input.type = c.tipo || "text";
-          }
-          input.id = c.id;
-          input.required = true;
-          fieldset.appendChild(input);
-        });
-        formContainer.appendChild(fieldset);
+    const formContainer = document.getElementById("inspection-form");
+    formContainer.innerHTML = "";
+
+    secciones.forEach(sec => {
+      const fieldset = document.createElement("fieldset");
+      const legend = document.createElement("legend");
+      legend.textContent = sec.titulo || "Sección";
+      fieldset.appendChild(legend);
+
+      (sec.campos || []).forEach(c => {
+        const label = document.createElement("label");
+        label.textContent = c.etiqueta || c.id || "Campo";
+        fieldset.appendChild(label);
+
+        let input;
+        if (c.tipo === "select" && Array.isArray(c.opciones)) {
+          input = document.createElement("select");
+          c.opciones.forEach(op => {
+            const option = document.createElement("option");
+            option.value = op;
+            option.textContent = op;
+            input.appendChild(option);
+          });
+        } else if (c.tipo === "textarea") {
+          input = document.createElement("textarea");
+        } else {
+          input = document.createElement("input");
+          input.type = c.tipo || "text";
+        }
+
+        input.id = c.id || c.etiqueta.replace(/\s+/g, "_").toLowerCase();
+        input.required = true;
+        fieldset.appendChild(input);
       });
-    } catch (err) {
-      alert("Error al cargar formulario: " + err.message);
-    }
+
+      formContainer.appendChild(fieldset);
+    });
+
+    console.log("✅ Formulario cargado correctamente desde formulario.json");
+  } catch (err) {
+    console.error("Error cargando formulario:", err);
+    alert("Error al cargar formulario.json: " + err.message);
   }
-  cargarFormulario();
+}
 
   // === 2️⃣ BUSCAR DATOS EN BASE JSON ===
   buscarBtn.onclick = async () => {
