@@ -27,37 +27,55 @@ document.addEventListener("DOMContentLoaded", () => {
   let videoChunks = [];
 
   // === 1️⃣ CARGAR FORMULARIO JSON ===
-// === CARGAR FORMULARIO JSON (compatible con tu estructura) ===
+// === CARGAR FORMULARIO JSON (compatible y con diagnóstico) ===
 async function cargarFormulario() {
+  const formContainer = document.getElementById("inspection-form");
+  formContainer.innerHTML = "<p>Cargando formulario...</p>";
+
   try {
-    const res = await fetch("formulario.json");
+    const res = await fetch("formulario.json", { cache: "no-store" });
     if (!res.ok) throw new Error(`No se pudo cargar formulario.json (${res.status})`);
 
     const data = await res.json();
-    const secciones = Array.isArray(data) ? data : data.secciones;
+    console.log("📄 Datos de formulario.json cargados:", data);
 
-    const formContainer = document.getElementById("inspection-form");
+    // Detectar si es array o tiene propiedad "secciones"
+    const secciones = Array.isArray(data)
+      ? data
+      : Array.isArray(data.secciones)
+      ? data.secciones
+      : [];
+
+    if (!secciones.length) {
+      throw new Error("El archivo formulario.json no contiene secciones válidas.");
+    }
+
     formContainer.innerHTML = "";
 
-    secciones.forEach(sec => {
+    secciones.forEach((sec, i) => {
       const fieldset = document.createElement("fieldset");
       const legend = document.createElement("legend");
-      legend.textContent = sec.titulo || "Sección";
+      legend.textContent = sec.titulo || `Sección ${i + 1}`;
       fieldset.appendChild(legend);
 
-      (sec.campos || []).forEach(c => {
+      if (!Array.isArray(sec.campos)) {
+        console.warn(`⚠️ La sección '${sec.titulo}' no tiene 'campos' válidos.`);
+        return;
+      }
+
+      sec.campos.forEach(c => {
         const label = document.createElement("label");
-        label.textContent = c.etiqueta || c.id || "Campo";
+        label.textContent = c.etiqueta || c.id || "Campo sin nombre";
         fieldset.appendChild(label);
 
         let input;
         if (c.tipo === "select" && Array.isArray(c.opciones)) {
           input = document.createElement("select");
           c.opciones.forEach(op => {
-            const option = document.createElement("option");
-            option.value = op;
-            option.textContent = op;
-            input.appendChild(option);
+            const opt = document.createElement("option");
+            opt.value = op;
+            opt.textContent = op;
+            input.appendChild(opt);
           });
         } else if (c.tipo === "textarea") {
           input = document.createElement("textarea");
@@ -66,7 +84,7 @@ async function cargarFormulario() {
           input.type = c.tipo || "text";
         }
 
-        input.id = c.id || c.etiqueta.replace(/\s+/g, "_").toLowerCase();
+        input.id = c.id || `campo_${Math.random().toString(36).substring(2, 8)}`;
         input.required = true;
         fieldset.appendChild(input);
       });
@@ -74,12 +92,13 @@ async function cargarFormulario() {
       formContainer.appendChild(fieldset);
     });
 
-    console.log("✅ Formulario cargado correctamente desde formulario.json");
+    console.log("✅ Formulario cargado correctamente.");
   } catch (err) {
-    console.error("Error cargando formulario:", err);
-    alert("Error al cargar formulario.json: " + err.message);
+    console.error("❌ Error al cargar formulario:", err);
+    formContainer.innerHTML = `<p style="color:red;">Error al cargar formulario: ${err.message}</p>`;
   }
 }
+
 
   // === 2️⃣ BUSCAR DATOS EN BASE JSON ===
   buscarBtn.onclick = async () => {
