@@ -1,89 +1,140 @@
-/* === NUEVOS ESTILOS DE BOTONES Y SECCIONES === */
+/* === Estilo general === */
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #e9f7ef; /* verde suave */
+  color: #003c3c;
+  margin: 0;
+  padding: 20px;
+}
 
+.container {
+  max-width: 850px;
+  margin: auto;
+  background: #ffffff;
+  padding: 20px 25px;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.15);
+}
+
+h1 {
+  text-align: center;
+  color: #0277bd;
+  border-bottom: 3px solid #00796b;
+  padding-bottom: 10px;
+}
+
+h3 {
+  text-align: center;
+  color: #004d40;
+  margin-top: 25px;
+}
+
+label {
+  font-weight: bold;
+  color: white;
+}
+
+/* === Formulario === */
+fieldset {
+  margin-bottom: 15px;
+  border: 2px solid #004d40;
+  border-radius: 8px;
+  background-color: #004d40;
+  color: white;
+}
+
+legend {
+  font-weight: bold;
+  background: #0277bd;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 7px;
+  margin-top: 6px;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
+}
+
+textarea {
+  min-height: 60px;
+}
+
+/* === Busqueda === */
 .busqueda {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
   gap: 10px;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
 }
 
-.busqueda input {
+.busqueda input, .busqueda select {
   flex: 1;
-  min-width: 180px;
+  min-width: 150px;
+}
+
+/* === Botones === */
+button {
+  background: #00796b;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  background: #004d40;
+  transform: scale(1.05);
+}
+
+#btnBorrarFirma {
+  background: #e53935;
+}
+
+#btnBorrarFirma:hover {
+  background: #b71c1c;
+}
+
+/* === Cámara y Fotos === */
+#video {
+  width: 100%;
+  max-height: 300px;
+  background: black;
+  border-radius: 10px;
+  margin: 10px auto;
+  display: block;
+}
+
+#preview img {
+  width: 100px;
+  margin: 5px;
+  border: 3px solid #00796b;
+  border-radius: 8px;
 }
 
 .acciones {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
   justify-content: center;
-  margin-top: 10px;
+  gap: 10px;
+  margin-top: 15px;
 }
 
-h3 {
-  color: #00695c;
-  margin-top: 20px;
-  text-align: center;
-}
-
-/* === FIRMA === */
+/* === Firma === */
 #signature {
   border: 2px solid #00796b;
-  background-color: #fff;
-  touch-action: none;
   width: 100%;
-  max-width: 380px;
+  max-width: 400px;
+  background: white;
   display: block;
   margin: 10px auto;
   border-radius: 8px;
-}
-
-#btnBorrarFirma {
-  background-color: #c62828;
-}
-
-#btnBorrarFirma:hover {
-  background-color: #8e0000;
-}
-
-/* === CÁMARA === */
-#video {
-  width: 100%;
-  max-height: 280px;
-  border: 2px solid #00796b;
-  border-radius: 8px;
-  background: #000;
-  display: block;
-  margin: auto;
-}
-
-#preview {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin-top: 10px;
-}
-
-#preview img {
-  width: 90px;
-  height: auto;
-  margin: 5px;
-  border: 2px solid #00796b;
-  border-radius: 6px;
-}
-
-/* === BOTONES === */
-button {
-  transition: all 0.2s ease;
-}
-
-button:hover {
-  transform: scale(1.05);
-}
-
-hr {
-  margin: 25px 0;
-  border: 0;
-  border-top: 2px solid #b2dfdb;
+  touch-action: none;
 }
