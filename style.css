@@ -1,26 +1,28 @@
-
+/* === ESTILOS GENERALES === */
 body {
-  font-family: Arial, sans-serif;
+  font-family: "Arial", sans-serif;
   margin: 0;
-  padding: 20px;
+  padding: 0;
   background: #e8f5e9; /* verde claro */
   color: #004d40;
 }
 
 .container {
-  max-width: 800px;
-  margin: auto;
+  max-width: 900px;
+  margin: 30px auto;
   background: #ffffff;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 0 15px rgba(0,0,0,0.15);
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
-h1, h2 {
+h1, h2, h3 {
   text-align: center;
-  color: #00796b;
+  color: #00695c;
+  margin-top: 0;
 }
 
+/* === FORMULARIO === */
 form label {
   display: block;
   margin-top: 10px;
@@ -37,8 +39,19 @@ form select {
   border: 1px solid #b2dfdb;
   border-radius: 5px;
   font-size: 14px;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
 }
 
+form input:focus,
+form textarea:focus,
+form select:focus {
+  outline: none;
+  border-color: #26a69a;
+  box-shadow: 0 0 5px rgba(38, 166, 154, 0.5);
+}
+
+/* === BOTONES === */
 button {
   padding: 10px 15px;
   margin: 10px 5px 0 0;
@@ -47,6 +60,9 @@ button {
   border: none;
   border-radius: 5px;
   cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  transition: background 0.3s;
 }
 
 button:hover {
@@ -54,57 +70,120 @@ button:hover {
 }
 
 button:disabled {
-  background-color: #999;
+  background-color: #9e9e9e;
   cursor: not-allowed;
 }
 
-.accordion {
-  margin-bottom: 1rem;
-  border: 1px solid #b2dfdb;
-  border-radius: 5px;
-  overflow: hidden;
+/* === AGRUPACIÓN DE BOTONES === */
+.acciones {
+  text-align: center;
+  margin-top: 20px;
 }
 
-.accordion-toggle {
-  width: 100%;
-  background: #004d40;
-  color: white;
-  padding: 12px;
+.acciones button {
+  margin: 8px 6px;
+}
+
+/* === SECCIONES (ACORDEONES) === */
+fieldset {
+  border: 2px solid #b2dfdb;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  padding: 15px;
+  background-color: #f9fffa;
+}
+
+legend {
   font-weight: bold;
-  text-align: left;
-  border: none;
-  cursor: pointer;
-  font-size: 15px;
+  color: #00796b;
+  padding: 0 10px;
 }
 
-.accordion-content {
-  display: none;
-  padding: 12px;
-  background: #f1f8e9;
+/* === BARRA DE BÚSQUEDA === */
+.busqueda {
+  background: #c8e6c9;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
 }
 
-.accordion.active .accordion-content {
-  display: block;
+.busqueda input, .busqueda select {
+  display: inline-block;
+  width: auto;
+  min-width: 200px;
+  margin-right: 10px;
 }
 
-#photo-thumbnails img {
-  width: 90px;
-  margin: 5px;
-  border: 2px solid #00796b;
-  border-radius: 6px;
+.busqueda button {
+  background-color: #388e3c;
 }
 
+.busqueda button:hover {
+  background-color: #1b5e20;
+}
+
+/* === CÁMARA Y FOTOS === */
 video {
   width: 100%;
-  max-height: 300px;
+  max-height: 280px;
   margin-top: 10px;
   border: 1px solid #ccc;
   border-radius: 6px;
+  background: #000;
 }
 
-canvas {
-  display: block;
-  margin: 10px 0;
+#preview {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+#preview img {
+  width: 90px;
+  height: auto;
+  margin: 5px;
+  border: 2px solid #00796b;
   border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  transition: transform 0.2s;
+}
+
+#preview img:hover {
+  transform: scale(1.05);
+}
+
+/* === FIRMA === */
+#signature {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  height: 180px;
+  margin: 15px auto;
+  border: 2px dashed #00796b;
+  background: #fff;
+  border-radius: 8px;
   touch-action: none;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 600px) {
+  .container {
+    padding: 15px;
+    margin: 10px;
+  }
+
+  .busqueda input, .busqueda select {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  button {
+    width: 100%;
+    margin: 6px 0;
+  }
+
+  #preview img {
+    width: 75px;
+  }
 }
