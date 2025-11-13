@@ -3,65 +3,52 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EVIDENCIAS FOTOGRÁFICAS</title>
+  <title>Registro FISE - Evidencias Fotográficas</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </head>
-
 <body>
-  <h1>📋 REGISTRO DE EVIDENCIAS FOTOGRÁFICAS</h1>
+  <h2>📋 Formato de Inspección FISE</h2>
 
-  <section id="datos-busqueda">
-    <label for="codigo-suministro">Código de Suministro:</label>
-    <input type="text" id="codigo-suministro" placeholder="Ingrese código" required />
-    <button id="buscar-datos">🔍 Buscar</button>
-
-    <label for="unidad">Unidad de Negocio:</label>
-    <select id="unidad" required>
-      <option value="">--Seleccione Unidad--</option>
-      <option value="UUNN HUANCAYO">UUNN HUANCAYO</option>
-      <option value="UUNN TARMA">UUNN TARMA</option>
-      <option value="UUNN HUANUCO">UUNN HUANUCO</option>
-      <option value="UUNN AYACUCHO">UUNN AYACUCHO</option>
-      <option value="UUNN HUANCAVELICA">UUNN HUANCAVELICA</option>
-      <option value="UUNN VALLE MANTARO">UUNN VALLE MANTARO</option>
-      <option value="UUNN SELVA CENTRAL">UUNN SELVA CENTRAL</option>
-      <option value="UUNN TINGO MARIA">UUNN TINGO MARIA</option>
-      <option value="UUNN PASCO">UUNN PASCO</option>
+  <div class="busqueda">
+    <label for="unidad_negocio">Unidad de Negocio:</label>
+    <select id="unidad_negocio">
+      <option value="">-- Seleccione --</option>
+      <option>UUNN HUANCAYO</option>
+      <option>UUNN TARMA</option>
+      <option>UUNN HUANUCO</option>
+      <option>UUNN AYACUCHO</option>
+      <option>UUNN HUANCAVELICA</option>
+      <option>UUNN VALLE MANTARO</option>
+      <option>UUNN SELVA CENTRAL</option>
+      <option>UUNN TINGO MARIA</option>
+      <option>UUNN PASCO</option>
     </select>
-  </section>
 
-  <form id="inspection-form"></form>
+    <input type="text" id="codigo_usuario" placeholder="Código de suministro" required />
+    <button id="btnBuscar">🔍 Buscar Titular</button>
+  </div>
 
-  <section id="firma-section">
-    <h3>✍️ Firma del Inspector o Usuario</h3>
-    <canvas id="firma-canvas" width="350" height="150"></canvas><br />
-    <button type="button" id="clear-firma">🧹 Limpiar Firma</button>
-  </section>
+  <div id="inspection-form"></div>
 
-  <section id="camara-section">
-    <h3>📷 Registro Fotográfico y de Video</h3>
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas" style="display:none;"></canvas><br />
-    <button type="button" id="start-btn">🎬 Activar Cámara</button>
-    <button type="button" id="stop-btn" disabled>🛑 Parar Cámara</button>
-    <button type="button" id="capture-btn" disabled>📸 Tomar Foto</button>
-    <button type="button" id="video-btn" disabled>🎥 Grabar Video</button>
-    <button type="button" id="reset-btn">♻️ Reiniciar</button>
-    <div id="photo-thumbnails"></div>
-    <div id="video-thumbnails"></div>
-  </section>
+  <hr />
 
-  <section id="acciones-finales">
-    <button type="button" id="pdf-btn" disabled>📤 Enviar a Drive</button>
-    <button type="button" id="zip-btn" disabled>💾 Descargar ZIP</button>
-  </section>
+  <div class="acciones">
+    <button id="btnIniciarCamara">📷 Activar cámara</button>
+    <button id="btnTomarFoto" disabled>📸 Tomar foto</button>
+    <button id="btnDetenerCamara" disabled>🛑 Parar cámara</button>
+    <button id="btnGrabarVideo">🎥 Grabar video</button>
+    <button id="btnBorrarFirma">🖋️ Borrar firma</button>
+    <button id="btnGenerarPDF">🧾 Generar PDF</button>
+    <button id="btnDescargarZIP">💾 Descargar ZIP</button>
+    <button id="btnSubirDrive">☁️ Enviar a Drive</button>
+  </div>
 
-  <footer>
-    <p>Aplicación para registro de evidencias fotográficas — FISE</p>
-  </footer>
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas" style="display:none;"></canvas>
+  <div id="preview"></div>
+
+  <h3>Firma del Inspector</h3>
+  <canvas id="signature" width="300" height="150" style="border:1px solid #444;"></canvas>
 
   <script src="script.js"></script>
 </body>
