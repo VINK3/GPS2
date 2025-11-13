@@ -1,0 +1,116 @@
+[
+  {
+    "titulo": "1. DATOS DEL USUARIO",
+    "campos": [
+      {
+        "id": "nombres_apellidos",
+        "etiqueta": "1.1. Nombres y Apellidos del Titular",
+        "tipo": "text"
+      },
+      {
+        "id": "dni",
+        "etiqueta": "1.2. DNI",
+        "tipo": "number"
+      },
+      {
+        "id": "codigo_usuario",
+        "etiqueta": "1.3. Código del usuario",
+        "tipo": "text"
+      },
+      {
+        "id": "fecha_inspeccion",
+        "etiqueta": "1.4. Fecha de inspección",
+        "tipo": "date"
+      }
+    ]
+  },
+  {
+    "titulo": "2. LOCALIZACIÓN DE LA INSTALACIÓN RER AUTÓNOMA",
+    "campos": [
+      {
+        "id": "departamento",
+        "etiqueta": "2.1. Departamento",
+        "tipo": "text"
+      },
+      {
+        "id": "provincia",
+        "etiqueta": "2.2. Provincia",
+        "tipo": "text"
+      },
+      {
+        "id": "distrito",
+        "etiqueta": "2.3. Distrito",
+        "tipo": "text"
+      },
+      {
+        "id": "localidad",
+        "etiqueta": "2.4. Localidad",
+        "tipo": "text"
+      },
+      {
+        "id": "utm_este",
+        "etiqueta": "2.5. Coordenada UTM Este",
+        "tipo": "number"
+      },
+      {
+        "id": "utm_norte",
+        "etiqueta": "2.6. Coordenada UTM Norte",
+        "tipo": "number"
+      },
+      {
+        "id": "utm_zona",
+        "etiqueta": "2.7. Zona UTM",
+        "tipo": "select",
+        "opciones": [
+          "17",
+          "18",
+          "19"
+        ]
+      },
+      {
+        "id": "telefono_usuario",
+        "etiqueta": "2.8. Teléfono del usuario",
+        "tipo": "text"
+      },
+      {
+        "id": "telefono_localidad",
+        "etiqueta": "2.9. Teléfono de la localidad",
+        "tipo": "text"
+      }
+    ]
+  },
+  {
+    "titulo": "3. ANOTACIONES IMPORTANTES",
+    "campos": [
+      {
+        "id": "estado_panel",
+        "etiqueta": "3.1. Estado del panel",
+        "tipo": "select",
+        "opciones": [
+          "Panel operativo",
+          "Panel no operativo"
+        ]
+      },
+      {
+        "id": "anotaciones_inspector",
+        "etiqueta": "3.2. Observaciones generales del inspector",
+        "tipo": "textarea"
+      }
+    ]
+  },
+  {
+    "titulo": "4. INFORMACIÓN DEL INSPECTOR",
+    "campos": [
+      {
+        "id": "nombre_inspector",
+        "etiqueta": "Nombre del inspector",
+        "tipo": "text"
+      },
+      {
+        "id": "dni_inspector",
+        "etiqueta": "DNI del inspector",
+        "tipo": "number"
+      }
+    ]
+  }
+]
