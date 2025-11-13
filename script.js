@@ -4,6 +4,8 @@
 // URL de tu Apps Script publicado (reemplázalo con el tuyo)
 const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwoqjgTrz68p-_KFQAFh2Irfi77DP4pxSFZRiEYznLVmIcMvgRD_X35hbGuP9oZCt6o/exec";
 
+let fotos = [];
+
 // === CARGAR FORMULARIO ===
 async function cargarFormulario() {
   const cont = document.getElementById("inspection-form");
@@ -89,6 +91,7 @@ function obtenerUbicacion() {
     err => alert("Error GPS: " + err.message)
   );
 }
+
 function convertirLatLonUTM(lat, lon, zona) {
   const a = 6378137.0;
   const f = 1 / 298.257223563;
@@ -114,13 +117,24 @@ function convertirLatLonUTM(lat, lon, zona) {
 const sigCanvas = document.getElementById("signature");
 const ctx = sigCanvas.getContext("2d");
 let drawing = false;
-sigCanvas.addEventListener("mousedown", () => (drawing = true));
-sigCanvas.addEventListener("mouseup", () => (drawing = false));
-sigCanvas.addEventListener("mousemove", dibujarFirma);
-sigCanvas.addEventListener("touchstart", () => (drawing = true));
-sigCanvas.addEventListener("touchend", () => (drawing = false));
-sigCanvas.addEventListener("touchmove", dibujarFirma);
-function dibujarFirma(e) {
+sigCanvas.addEventListener("mousedown", startDraw);
+sigCanvas.addEventListener("mouseup", stopDraw);
+sigCanvas.addEventListener("mousemove", draw);
+sigCanvas.addEventListener("touchstart", startDraw);
+sigCanvas.addEventListener("touchend", stopDraw);
+sigCanvas.addEventListener("touchmove", draw);
+
+function startDraw(e) {
+  drawing = true;
+  ctx.beginPath();
+}
+
+function stopDraw() {
+  drawing = false;
+  ctx.closePath();
+}
+
+function draw(e) {
   if (!drawing) return;
   e.preventDefault();
   const rect = sigCanvas.getBoundingClientRect();
@@ -128,27 +142,35 @@ function dibujarFirma(e) {
   const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
   ctx.lineWidth = 2;
   ctx.lineCap = "round";
-  ctx.strokeStyle = "black";
+  ctx.strokeStyle = "#000";
   ctx.lineTo(x, y);
   ctx.stroke();
 }
-document.getElementById("btnBorrarFirma").onclick = () => ctx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+
+document.getElementById("btnBorrarFirma").onclick = () => {
+  ctx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+};
 
 // === CÁMARA ===
 let stream;
 document.getElementById("btnIniciarCamara").onclick = async () => {
   const video = document.getElementById("video");
-  stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-  video.srcObject = stream;
-  document.getElementById("btnTomarFoto").disabled = false;
-  document.getElementById("btnDetenerCamara").disabled = false;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    video.srcObject = stream;
+    document.getElementById("btnTomarFoto").disabled = false;
+    document.getElementById("btnDetenerCamara").disabled = false;
+  } catch {
+    alert("Error al acceder a la cámara.");
+  }
 };
+
 document.getElementById("btnDetenerCamara").onclick = () => {
   stream?.getTracks().forEach(t => t.stop());
   document.getElementById("btnTomarFoto").disabled = true;
   document.getElementById("btnDetenerCamara").disabled = true;
 };
-let fotos = [];
+
 document.getElementById("btnTomarFoto").onclick = () => {
   const video = document.getElementById("video");
   const canvas = document.getElementById("canvas");
@@ -156,39 +178,38 @@ document.getElementById("btnTomarFoto").onclick = () => {
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   ctx.drawImage(video, 0, 0);
-  const foto = canvas.toDataURL("image/jpeg");
+  const foto = canvas.toDataURL("image/jpeg", 0.9);
   fotos.push(foto);
   const img = document.createElement("img");
   img.src = foto;
-  img.width = 100;
   document.getElementById("preview").appendChild(img);
 };
 
-// === PDF + ZIP ===
-document.getElementById("btnGenerarPDF").onclick = async () => {
+// === DESCARGAR ZIP ===
+document.getElementById("btnDescargarZIP").onclick = async () => {
+  if (!fotos.length) return alert("No hay fotos para guardar.");
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF();
-  pdf.text("FORMATO DE INSPECCIÓN FISE", 10, 10);
-  const inputs = document.querySelectorAll("input, select, textarea");
-  let y = 20;
-  inputs.forEach(i => {
+  const codigo = document.getElementById("codigo_usuario").value || "SIN_CODIGO";
+  let y = 10;
+  pdf.text(`REPORTE DE INSPECCIÓN - ${codigo}`, 10, y);
+  y += 10;
+  document.querySelectorAll("input, select, textarea").forEach(i => {
     pdf.text(`${i.id}: ${i.value}`, 10, y);
-    y += 7;
-    if (y > 270) {
-      pdf.addPage();
-      y = 10;
-    }
+    y += 6;
+    if (y > 270) { pdf.addPage(); y = 10; }
   });
-  fotos.forEach((foto, idx) => {
+  fotos.forEach((f, i) => {
     pdf.addPage();
-    pdf.text(`Foto ${idx + 1}`, 10, 10);
-    pdf.addImage(foto, "JPEG", 10, 20, 180, 160);
+    pdf.text(`Foto ${i + 1}`, 10, 10);
+    pdf.addImage(f, "JPEG", 10, 20, 180, 160);
   });
   const pdfBlob = pdf.output("blob");
-  const codigo = document.getElementById("codigo_usuario").value.trim() || "SIN_CODIGO";
+
   const zip = new JSZip();
-  zip.file(`${codigo}_reporte.pdf`, pdfBlob);
-  fotos.forEach((f, i) => zip.file(`${codigo}_${i + 1}.jpg`, f.split(",")[1], { base64: true }));
+  const folder = zip.folder(codigo);
+  folder.file(`${codigo}_reporte.pdf`, pdfBlob);
+  fotos.forEach((f, i) => folder.file(`${codigo}_${i + 1}.jpg`, f.split(",")[1], { base64: true }));
   const zipBlob = await zip.generateAsync({ type: "blob" });
   saveAs(zipBlob, `${codigo}.zip`);
 };
@@ -198,28 +219,30 @@ document.getElementById("btnSubirDrive").onclick = async () => {
   const unidad = document.getElementById("unidad_negocio").value;
   const codigo = document.getElementById("codigo_usuario").value.trim();
   if (!unidad || !codigo) return alert("Seleccione unidad y código.");
-
-  const zip = new JSZip();
-  fotos.forEach((f, i) => zip.file(`${codigo}_${i + 1}.jpg`, f.split(",")[1], { base64: true }));
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF();
-  pdf.text("Reporte FISE", 10, 10);
+  pdf.text(`REPORTE DE INSPECCIÓN - ${codigo}`, 10, 10);
   const pdfBlob = pdf.output("blob");
-  zip.file(`${codigo}_reporte.pdf`, pdfBlob);
+
+  const zip = new JSZip();
+  const folder = zip.folder(codigo);
+  folder.file(`${codigo}_reporte.pdf`, pdfBlob);
+  fotos.forEach((f, i) => folder.file(`${codigo}_${i + 1}.jpg`, f.split(",")[1], { base64: true }));
   const zipBlob = await zip.generateAsync({ type: "blob" });
 
   const reader = new FileReader();
   reader.onload = async () => {
-    const base64Data = reader.result.split(",")[1];
+    const base64 = reader.result.split(",")[1];
     const body = new URLSearchParams({
       unidad,
       suministro: codigo,
       nombre: `${codigo}.zip`,
       tipo: "application/zip",
-      archivo: base64Data
+      archivo: base64
     });
     const res = await fetch(WEBAPP_URL, { method: "POST", body });
-    alert(await res.text());
+    const msg = await res.text();
+    alert(msg.includes("OK") ? "✅ Archivo guardado en Drive" : "❌ Error: " + msg);
   };
   reader.readAsDataURL(zipBlob);
 };
