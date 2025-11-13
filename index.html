@@ -6,6 +6,8 @@
   <title>EVIDENCIAS FOTOGRÁFICAS</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </head>
 
 <body>
@@ -14,6 +16,7 @@
   <section id="datos-busqueda">
     <label for="codigo-suministro">Código de Suministro:</label>
     <input type="text" id="codigo-suministro" placeholder="Ingrese código" required />
+    <button id="buscar-datos">🔍 Buscar</button>
 
     <label for="unidad">Unidad de Negocio:</label>
     <select id="unidad" required>
@@ -43,6 +46,7 @@
     <video id="video" autoplay playsinline></video>
     <canvas id="canvas" style="display:none;"></canvas><br />
     <button type="button" id="start-btn">🎬 Activar Cámara</button>
+    <button type="button" id="stop-btn" disabled>🛑 Parar Cámara</button>
     <button type="button" id="capture-btn" disabled>📸 Tomar Foto</button>
     <button type="button" id="video-btn" disabled>🎥 Grabar Video</button>
     <button type="button" id="reset-btn">♻️ Reiniciar</button>
@@ -52,6 +56,7 @@
 
   <section id="acciones-finales">
     <button type="button" id="pdf-btn" disabled>📤 Enviar a Drive</button>
+    <button type="button" id="zip-btn" disabled>💾 Descargar ZIP</button>
   </section>
 
   <footer>
