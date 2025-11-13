@@ -7,48 +7,64 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h2>📋 Formato de Inspección FISE</h2>
+  <div class="container">
+    <h2>📋 Formato de Inspección FISE</h2>
 
-  <div class="busqueda">
-    <label for="unidad_negocio">Unidad de Negocio:</label>
-    <select id="unidad_negocio">
-      <option value="">-- Seleccione --</option>
-      <option>UUNN HUANCAYO</option>
-      <option>UUNN TARMA</option>
-      <option>UUNN HUANUCO</option>
-      <option>UUNN AYACUCHO</option>
-      <option>UUNN HUANCAVELICA</option>
-      <option>UUNN VALLE MANTARO</option>
-      <option>UUNN SELVA CENTRAL</option>
-      <option>UUNN TINGO MARIA</option>
-      <option>UUNN PASCO</option>
-    </select>
+    <!-- 🔹 Selector de Unidad y Búsqueda -->
+    <div class="busqueda">
+      <label for="unidad_negocio">Unidad de Negocio:</label>
+      <select id="unidad_negocio">
+        <option value="">-- Seleccione --</option>
+        <option>UUNN HUANCAYO</option>
+        <option>UUNN TARMA</option>
+        <option>UUNN HUANUCO</option>
+        <option>UUNN AYACUCHO</option>
+        <option>UUNN HUANCAVELICA</option>
+        <option>UUNN VALLE MANTARO</option>
+        <option>UUNN SELVA CENTRAL</option>
+        <option>UUNN TINGO MARIA</option>
+        <option>UUNN PASCO</option>
+      </select>
 
-    <input type="text" id="codigo_usuario" placeholder="Código de suministro" required />
-    <button id="btnBuscar">🔍 Buscar Titular</button>
+      <input type="text" id="codigo_usuario" placeholder="Código de suministro" required />
+      <button id="btnBuscar">🔍 Buscar Titular</button>
+    </div>
+
+    <!-- 🔹 Formulario -->
+    <div id="inspection-form"></div>
+
+    <!-- 🔹 Firma -->
+    <h3>Firma del Inspector</h3>
+    <canvas id="signature" width="350" height="180"></canvas>
+    <button id="btnBorrarFirma">🧽 Borrar Firma</button>
+
+    <hr />
+
+    <!-- 🔹 Cámara -->
+    <h3>Captura Fotográfica</h3>
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+    <div class="acciones">
+      <button id="btnIniciarCamara">📷 Activar Cámara</button>
+      <button id="btnTomarFoto" disabled>📸 Tomar Foto</button>
+      <button id="btnDetenerCamara" disabled>🛑 Parar Cámara</button>
+    </div>
+
+    <div id="preview"></div>
+
+    <hr />
+
+    <!-- 🔹 Botones finales -->
+    <div class="acciones">
+      <button id="btnDescargarZIP">💾 Descargar ZIP</button>
+      <button id="btnSubirDrive">☁️ Enviar a Drive</button>
+    </div>
   </div>
 
-  <div id="inspection-form"></div>
-
-  <hr />
-
-  <div class="acciones">
-    <button id="btnIniciarCamara">📷 Activar cámara</button>
-    <button id="btnTomarFoto" disabled>📸 Tomar foto</button>
-    <button id="btnDetenerCamara" disabled>🛑 Parar cámara</button>
-    <button id="btnGrabarVideo">🎥 Grabar video</button>
-    <button id="btnBorrarFirma">🖋️ Borrar firma</button>
-    <button id="btnGenerarPDF">🧾 Generar PDF</button>
-    <button id="btnDescargarZIP">💾 Descargar ZIP</button>
-    <button id="btnSubirDrive">☁️ Enviar a Drive</button>
-  </div>
-
-  <video id="video" autoplay playsinline></video>
-  <canvas id="canvas" style="display:none;"></canvas>
-  <div id="preview"></div>
-
-  <h3>Firma del Inspector</h3>
-  <canvas id="signature" width="300" height="150" style="border:1px solid #444;"></canvas>
+  <!-- Librerías -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
   <script src="script.js"></script>
 </body>
