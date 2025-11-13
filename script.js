@@ -1,9 +1,10 @@
 // === EVIDENCIAS FOTOGRÁFICAS ===
 // Envía reporte, fotos y video al Apps Script de Google Drive
 
-const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxLDO6-Y12quj_RYuC5XYQK5DilAlCoTt1d1HkGWXu7oBPtY8zySO2uDIY-RF2TW_g/exec"; // <--- reemplaza con tu URL /exec
+const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwoqjgTrz68p-_KFQAFh2Irfi77DP4pxSFZRiEYznLVmIcMvgRD_X35hbGuP9oZCt6o/exec"; // <-- reemplaza con tu URL /exec del Apps Script
 
 document.addEventListener("DOMContentLoaded", () => {
+  const formContainer = document.getElementById("inspection-form");
   const video = document.getElementById("video");
   const canvas = document.getElementById("canvas");
   const startBtn = document.getElementById("start-btn");
@@ -12,7 +13,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const videoBtn = document.getElementById("video-btn");
   const pdfBtn = document.getElementById("pdf-btn");
   const zipBtn = document.getElementById("zip-btn");
-  const resetBtn = document.getElementById("reset-btn");
   const thumbnailsDiv = document.getElementById("photo-thumbnails");
   const videoThumbs = document.getElementById("video-thumbnails");
   const firmaCanvas = document.getElementById("firma-canvas");
@@ -26,12 +26,13 @@ document.addEventListener("DOMContentLoaded", () => {
   let mediaRecorder;
   let videoChunks = [];
 
-  // === CARGAR FORMULARIO JSON ===
-  fetch("formulario.json")
-    .then(res => res.json())
-    .then(data => {
-      const form = document.getElementById("inspection-form");
-      form.innerHTML = "";
+  // === 1️⃣ CARGAR FORMULARIO JSON ===
+  async function cargarFormulario() {
+    try {
+      const res = await fetch("formulario.json");
+      if (!res.ok) throw new Error("No se encontró formulario.json");
+      const data = await res.json();
+      formContainer.innerHTML = "";
       data.secciones.forEach(sec => {
         const fieldset = document.createElement("fieldset");
         const legend = document.createElement("legend");
@@ -59,14 +60,18 @@ document.addEventListener("DOMContentLoaded", () => {
             input.type = c.tipo || "text";
           }
           input.id = c.id;
+          input.required = true;
           fieldset.appendChild(input);
         });
-        form.appendChild(fieldset);
+        formContainer.appendChild(fieldset);
       });
-    })
-    .catch(err => console.error("Error cargando formulario.json:", err));
+    } catch (err) {
+      alert("Error al cargar formulario: " + err.message);
+    }
+  }
+  cargarFormulario();
 
-  // === BUSCAR DATOS EN BASE JSON ===
+  // === 2️⃣ BUSCAR DATOS EN BASE JSON ===
   buscarBtn.onclick = async () => {
     const codigo = document.getElementById("codigo-suministro").value.trim();
     if (!codigo) return alert("Ingrese un código de suministro.");
@@ -76,19 +81,20 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!res.ok) throw new Error("No se pudo cargar base_titulares.json");
       const base = await res.json();
 
-      // Buscar por codigo_usuario (tolerante a mayúsculas, espacios, etc.)
       const usuario = base.find(
         u => String(u.codigo_usuario).trim().toLowerCase() === codigo.trim().toLowerCase()
       );
 
       if (!usuario) {
-        alert("⚠️ No se encontró el suministro en la base de datos.");
+        alert("⚠️ No se encontró el suministro.");
         console.warn("Ejemplo de código:", base[0]?.codigo_usuario);
         return;
       }
 
-      // Rellenar formulario (por ID o etiqueta parecida)
-      const camposFormulario = Array.from(document.querySelectorAll("#inspection-form input, #inspection-form select, #inspection-form textarea"));
+      const camposFormulario = Array.from(
+        document.querySelectorAll("#inspection-form input, #inspection-form select, #inspection-form textarea")
+      );
+
       Object.entries(usuario).forEach(([clave, valor]) => {
         const exacto = document.getElementById(clave);
         if (exacto) {
@@ -97,65 +103,60 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         const parcial = camposFormulario.find(el =>
           el.id.toLowerCase().includes(clave.toLowerCase()) ||
-          (el.previousElementSibling && el.previousElementSibling.textContent.toLowerCase().includes(clave.toLowerCase()))
+          (el.previousElementSibling &&
+            el.previousElementSibling.textContent.toLowerCase().includes(clave.toLowerCase()))
         );
         if (parcial) parcial.value = valor;
       });
 
       alert(`✅ Datos cargados para ${usuario.nombres_apellidos || "el suministro ingresado"}.`);
     } catch (err) {
-      alert("Error al cargar base de datos: " + err.message);
+      alert("Error al cargar base_titulares.json: " + err.message);
     }
   };
 
-  // === FIRMA ===
+  // === 3️⃣ FIRMA DIGITAL ===
   firmaCtx.lineWidth = 2;
-  firmaCtx.lineCap = "round";
   let dibujando = false;
-
   const getCoords = e => {
     const rect = firmaCanvas.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return {
-      x: (clientX - rect.left) * (firmaCanvas.width / rect.width),
-      y: (clientY - rect.top) * (firmaCanvas.height / rect.height)
-    };
+    return { x: clientX - rect.left, y: clientY - rect.top };
   };
-
-  ["mousedown", "touchstart"].forEach(ev =>
-    firmaCanvas.addEventListener(ev, e => {
-      e.preventDefault();
-      dibujando = true;
-      const { x, y } = getCoords(e);
-      firmaCtx.beginPath();
-      firmaCtx.moveTo(x, y);
-    })
-  );
-  ["mousemove", "touchmove"].forEach(ev =>
-    firmaCanvas.addEventListener(ev, e => {
-      if (!dibujando) return;
-      e.preventDefault();
-      const { x, y } = getCoords(e);
-      firmaCtx.lineTo(x, y);
-      firmaCtx.stroke();
-    })
-  );
-  ["mouseup", "mouseleave", "touchend", "touchcancel"].forEach(ev =>
-    firmaCanvas.addEventListener(ev, e => {
-      e.preventDefault();
-      dibujando = false;
-    })
-  );
+  firmaCanvas.addEventListener("mousedown", e => {
+    dibujando = true;
+    const { x, y } = getCoords(e);
+    firmaCtx.beginPath();
+    firmaCtx.moveTo(x, y);
+  });
+  firmaCanvas.addEventListener("mousemove", e => {
+    if (!dibujando) return;
+    const { x, y } = getCoords(e);
+    firmaCtx.lineTo(x, y);
+    firmaCtx.stroke();
+  });
+  firmaCanvas.addEventListener("mouseup", () => (dibujando = false));
+  firmaCanvas.addEventListener("mouseleave", () => (dibujando = false));
+  firmaCanvas.addEventListener("touchstart", e => {
+    dibujando = true;
+    const { x, y } = getCoords(e);
+    firmaCtx.beginPath();
+    firmaCtx.moveTo(x, y);
+  });
+  firmaCanvas.addEventListener("touchmove", e => {
+    if (!dibujando) return;
+    e.preventDefault();
+    const { x, y } = getCoords(e);
+    firmaCtx.lineTo(x, y);
+    firmaCtx.stroke();
+  });
+  firmaCanvas.addEventListener("touchend", () => (dibujando = false));
 
   document.getElementById("clear-firma").onclick = () =>
     firmaCtx.clearRect(0, 0, firmaCanvas.width, firmaCanvas.height);
 
-  // === GEOLOCALIZACIÓN ===
-  if ("geolocation" in navigator)
-    navigator.geolocation.getCurrentPosition(pos => (currentPosition = pos.coords));
-
-  // === CÁMARA ===
+  // === 4️⃣ CÁMARA ===
   async function getCameraStream() {
     return await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "environment" },
@@ -180,9 +181,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (currentStream) {
       currentStream.getTracks().forEach(t => t.stop());
       video.srcObject = null;
-      captureBtn.disabled = true;
-      videoBtn.disabled = true;
-      stopBtn.disabled = true;
     }
   };
 
@@ -205,111 +203,63 @@ document.addEventListener("DOMContentLoaded", () => {
     const img = document.createElement("img");
     img.src = photo;
     thumbnailsDiv.appendChild(img);
-    pdfBtn.disabled = false;
-    zipBtn.disabled = false;
   };
 
-  // === VIDEO ===
-  videoBtn.onclick = () => {
-    if (!mediaRecorder || mediaRecorder.state === "inactive") {
-      if (!currentStream) return alert("Activa la cámara antes de grabar.");
-      mediaRecorder = new MediaRecorder(currentStream, { mimeType: "video/webm" });
-      videoChunks = [];
-      mediaRecorder.ondataavailable = e => videoChunks.push(e.data);
-      mediaRecorder.onstop = () => {
-        recordedVideoBlob = new Blob(videoChunks, { type: "video/webm" });
-        const videoURL = URL.createObjectURL(recordedVideoBlob);
-        const vid = document.createElement("video");
-        vid.src = videoURL;
-        vid.controls = true;
-        vid.width = 200;
-        videoThumbs.appendChild(vid);
-        alert("🎥 Video grabado correctamente.");
-      };
-      mediaRecorder.start();
-      videoBtn.textContent = "⏹ Detener";
-    } else {
-      mediaRecorder.stop();
-      videoBtn.textContent = "🎥 Grabar Video";
-    }
-  };
-
-  // === REINICIAR ===
-  resetBtn.onclick = () => {
-    photos = [];
-    thumbnailsDiv.innerHTML = "";
-    videoThumbs.innerHTML = "";
-    recordedVideoBlob = null;
-    firmaCtx.clearRect(0, 0, firmaCanvas.width, firmaCanvas.height);
-    pdfBtn.disabled = true;
-    zipBtn.disabled = true;
-  };
-
-  // === SUBIR Y GENERAR PDF ===
+  // === 5️⃣ GENERAR PDF ===
   pdfBtn.onclick = async () => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const suministro = document.getElementById("codigo-suministro").value.trim();
     const unidad = document.getElementById("unidad").value;
-    if (!suministro || !unidad) return alert("Debe ingresar código y unidad.");
 
+    doc.setFontSize(12);
     doc.text("FORMATO DE INSPECCIÓN DE INSTALACIÓN RER AUTÓNOMA", 10, 20);
     doc.text(`Código de Suministro: ${suministro}`, 10, 30);
     let y = 40;
+
     document.querySelectorAll("#inspection-form input, #inspection-form select, #inspection-form textarea").forEach(el => {
-      doc.text(`${el.id}: ${el.value}`, 10, y);
+      const label = el.previousElementSibling ? el.previousElementSibling.textContent : el.id;
+      doc.text(`${label}: ${el.value}`, 10, y);
       y += 7;
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
     });
+
+    // Firma
     const firmaImg = firmaCanvas.toDataURL("image/png");
     doc.addImage(firmaImg, "PNG", 10, y + 5, 80, 40);
+    y += 50;
+
+    // Agregar fotos
+    for (let i = 0; i < photos.length; i++) {
+      doc.addPage();
+      doc.text(`Foto ${i + 1}`, 10, 20);
+      doc.addImage(photos[i], "JPEG", 10, 30, 180, 130);
+    }
+
     const pdfBlob = doc.output("blob");
+
+    // Subir a Drive
     await subirArchivo(pdfBlob, `${suministro}_reporte.pdf`, "application/pdf", unidad, suministro);
 
-    for (let i = 0; i < photos.length; i++) {
-      const blob = await (await fetch(photos[i])).blob();
-      await subirArchivo(blob, `${suministro}_${i + 1}.jpg`, "image/jpeg", unidad, suministro);
-    }
-
-    if (recordedVideoBlob)
-      await subirArchivo(recordedVideoBlob, `${suministro}_video.webm`, "video/webm", unidad, suministro);
-
-    alert(`✅ Archivos guardados en Google Drive (${unidad} / ${suministro})`);
+    alert(`✅ Reporte ${suministro} guardado correctamente en Google Drive (${unidad})`);
   };
 
-  // === DESCARGAR ZIP LOCAL ===
-  zipBtn.onclick = async () => {
-    const zip = new JSZip();
-    const suministro = document.getElementById("codigo-suministro").value.trim();
-    const carpeta = zip.folder(suministro);
-    const { jsPDF } = window.jspdf;
-
-    const doc = new jsPDF();
-    doc.text(`Suministro: ${suministro}`, 10, 20);
-    const pdfBlob = doc.output("blob");
-    carpeta.file(`${suministro}_reporte.pdf`, pdfBlob);
-
-    for (let i = 0; i < photos.length; i++) {
-      const blob = await (await fetch(photos[i])).blob();
-      carpeta.file(`${suministro}_${i + 1}.jpg`, blob);
-    }
-
-    if (recordedVideoBlob)
-      carpeta.file(`${suministro}_video.webm`, recordedVideoBlob);
-
-    const content = await zip.generateAsync({ type: "blob" });
-    saveAs(content, `${suministro}.zip`);
-  };
+  // === 6️⃣ SUBIR ARCHIVOS A DRIVE ===
+  async function subirArchivo(blob, nombre, tipo, unidad, suministro) {
+    const reader = new FileReader();
+    return new Promise(resolve => {
+      reader.onloadend = async () => {
+        const base64Data = reader.result.split(",")[1];
+        const body = new URLSearchParams({ unidad, suministro, nombre, tipo, archivo: base64Data });
+        const res = await fetch(WEBAPP_URL, { method: "POST", body });
+        if (res.ok) console.log("Subido:", nombre);
+        resolve();
+      };
+      reader.readAsDataURL(blob);
+    });
+  }
 });
 
-async function subirArchivo(blob, nombre, tipo, unidad, suministro) {
-  const reader = new FileReader();
-  return new Promise(resolve => {
-    reader.onloadend = async () => {
-      const base64Data = reader.result.split(",")[1];
-      const body = new URLSearchParams({ unidad, suministro, nombre, tipo, archivo: base64Data });
-      await fetch(WEBAPP_URL, { method: "POST", body });
-      resolve();
-    };
-    reader.readAsDataURL(blob);
-  });
-}
