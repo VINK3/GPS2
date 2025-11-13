@@ -26,11 +26,12 @@ document.addEventListener("DOMContentLoaded", () => {
   let mediaRecorder;
   let videoChunks = [];
 
-  // === CARGAR FORMULARIO ===
+  // === CARGAR FORMULARIO JSON ===
   fetch("formulario.json")
     .then(res => res.json())
     .then(data => {
       const form = document.getElementById("inspection-form");
+      form.innerHTML = "";
       data.secciones.forEach(sec => {
         const fieldset = document.createElement("fieldset");
         const legend = document.createElement("legend");
@@ -41,6 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const label = document.createElement("label");
           label.textContent = c.etiqueta;
           fieldset.appendChild(label);
+
           let input;
           if (c.tipo === "select") {
             input = document.createElement("select");
@@ -61,53 +63,104 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         form.appendChild(fieldset);
       });
-    });
+    })
+    .catch(err => console.error("Error cargando formulario.json:", err));
 
   // === BUSCAR DATOS EN BASE JSON ===
   buscarBtn.onclick = async () => {
     const codigo = document.getElementById("codigo-suministro").value.trim();
     if (!codigo) return alert("Ingrese un código de suministro.");
 
-    const res = await fetch("base_titulares.json");
-    const base = await res.json();
-    const usuario = base.find(u => u.codigo === codigo);
+    try {
+      const res = await fetch("base_titulares.json");
+      if (!res.ok) throw new Error("No se pudo cargar base_titulares.json");
+      const base = await res.json();
 
-    if (!usuario) {
-      alert("⚠️ No se encontró el suministro en la base de datos.");
-      return;
+      // Buscar por codigo_usuario (tolerante a mayúsculas, espacios, etc.)
+      const usuario = base.find(
+        u => String(u.codigo_usuario).trim().toLowerCase() === codigo.trim().toLowerCase()
+      );
+
+      if (!usuario) {
+        alert("⚠️ No se encontró el suministro en la base de datos.");
+        console.warn("Ejemplo de código:", base[0]?.codigo_usuario);
+        return;
+      }
+
+      // Rellenar formulario (por ID o etiqueta parecida)
+      const camposFormulario = Array.from(document.querySelectorAll("#inspection-form input, #inspection-form select, #inspection-form textarea"));
+      Object.entries(usuario).forEach(([clave, valor]) => {
+        const exacto = document.getElementById(clave);
+        if (exacto) {
+          exacto.value = valor;
+          return;
+        }
+        const parcial = camposFormulario.find(el =>
+          el.id.toLowerCase().includes(clave.toLowerCase()) ||
+          (el.previousElementSibling && el.previousElementSibling.textContent.toLowerCase().includes(clave.toLowerCase()))
+        );
+        if (parcial) parcial.value = valor;
+      });
+
+      alert(`✅ Datos cargados para ${usuario.nombres_apellidos || "el suministro ingresado"}.`);
+    } catch (err) {
+      alert("Error al cargar base de datos: " + err.message);
     }
-
-    // Autollenado
-    Object.keys(usuario).forEach(k => {
-      const el = document.getElementById(k);
-      if (el) el.value = usuario[k];
-    });
-    alert("✅ Datos cargados correctamente.");
   };
 
   // === FIRMA ===
   firmaCtx.lineWidth = 2;
+  firmaCtx.lineCap = "round";
   let dibujando = false;
+
   const getCoords = e => {
     const rect = firmaCanvas.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return { x: (clientX - rect.left) * (firmaCanvas.width / rect.width), y: (clientY - rect.top) * (firmaCanvas.height / rect.height) };
+    return {
+      x: (clientX - rect.left) * (firmaCanvas.width / rect.width),
+      y: (clientY - rect.top) * (firmaCanvas.height / rect.height)
+    };
   };
-  firmaCanvas.addEventListener("mousedown", e => { dibujando = true; const { x, y } = getCoords(e); firmaCtx.beginPath(); firmaCtx.moveTo(x, y); });
-  firmaCanvas.addEventListener("mousemove", e => { if (!dibujando) return; const { x, y } = getCoords(e); firmaCtx.lineTo(x, y); firmaCtx.stroke(); });
-  firmaCanvas.addEventListener("mouseup", () => dibujando = false);
-  firmaCanvas.addEventListener("touchstart", e => { e.preventDefault(); dibujando = true; const { x, y } = getCoords(e); firmaCtx.beginPath(); firmaCtx.moveTo(x, y); });
-  firmaCanvas.addEventListener("touchmove", e => { if (!dibujando) return; e.preventDefault(); const { x, y } = getCoords(e); firmaCtx.lineTo(x, y); firmaCtx.stroke(); });
-  firmaCanvas.addEventListener("touchend", () => dibujando = false);
-  document.getElementById("clear-firma").onclick = () => firmaCtx.clearRect(0, 0, firmaCanvas.width, firmaCanvas.height);
+
+  ["mousedown", "touchstart"].forEach(ev =>
+    firmaCanvas.addEventListener(ev, e => {
+      e.preventDefault();
+      dibujando = true;
+      const { x, y } = getCoords(e);
+      firmaCtx.beginPath();
+      firmaCtx.moveTo(x, y);
+    })
+  );
+  ["mousemove", "touchmove"].forEach(ev =>
+    firmaCanvas.addEventListener(ev, e => {
+      if (!dibujando) return;
+      e.preventDefault();
+      const { x, y } = getCoords(e);
+      firmaCtx.lineTo(x, y);
+      firmaCtx.stroke();
+    })
+  );
+  ["mouseup", "mouseleave", "touchend", "touchcancel"].forEach(ev =>
+    firmaCanvas.addEventListener(ev, e => {
+      e.preventDefault();
+      dibujando = false;
+    })
+  );
+
+  document.getElementById("clear-firma").onclick = () =>
+    firmaCtx.clearRect(0, 0, firmaCanvas.width, firmaCanvas.height);
 
   // === GEOLOCALIZACIÓN ===
-  if ("geolocation" in navigator) navigator.geolocation.getCurrentPosition(pos => currentPosition = pos.coords);
+  if ("geolocation" in navigator)
+    navigator.geolocation.getCurrentPosition(pos => (currentPosition = pos.coords));
 
   // === CÁMARA ===
   async function getCameraStream() {
-    return await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: true });
+    return await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" },
+      audio: true
+    });
   }
 
   startBtn.onclick = async () => {
@@ -138,7 +191,9 @@ document.addEventListener("DOMContentLoaded", () => {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const coords = currentPosition ? `${currentPosition.latitude.toFixed(6)}, ${currentPosition.longitude.toFixed(6)}` : "Ubicación no disponible";
+    const coords = currentPosition
+      ? `${currentPosition.latitude.toFixed(6)}, ${currentPosition.longitude.toFixed(6)}`
+      : "Ubicación no disponible";
     const now = new Date().toLocaleString();
     ctx.fillStyle = "rgba(255,255,255,0.7)";
     ctx.fillRect(10, canvas.height - 55, 420, 45);
@@ -179,7 +234,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  // === GENERAR Y SUBIR ===
+  // === REINICIAR ===
+  resetBtn.onclick = () => {
+    photos = [];
+    thumbnailsDiv.innerHTML = "";
+    videoThumbs.innerHTML = "";
+    recordedVideoBlob = null;
+    firmaCtx.clearRect(0, 0, firmaCanvas.width, firmaCanvas.height);
+    pdfBtn.disabled = true;
+    zipBtn.disabled = true;
+  };
+
+  // === SUBIR Y GENERAR PDF ===
   pdfBtn.onclick = async () => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -204,9 +270,8 @@ document.addEventListener("DOMContentLoaded", () => {
       await subirArchivo(blob, `${suministro}_${i + 1}.jpg`, "image/jpeg", unidad, suministro);
     }
 
-    if (recordedVideoBlob) {
+    if (recordedVideoBlob)
       await subirArchivo(recordedVideoBlob, `${suministro}_video.webm`, "video/webm", unidad, suministro);
-    }
 
     alert(`✅ Archivos guardados en Google Drive (${unidad} / ${suministro})`);
   };
@@ -218,20 +283,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const carpeta = zip.folder(suministro);
     const { jsPDF } = window.jspdf;
 
-    // Generar PDF
     const doc = new jsPDF();
     doc.text(`Suministro: ${suministro}`, 10, 20);
     const pdfBlob = doc.output("blob");
     carpeta.file(`${suministro}_reporte.pdf`, pdfBlob);
 
-    // Fotos
     for (let i = 0; i < photos.length; i++) {
       const blob = await (await fetch(photos[i])).blob();
       carpeta.file(`${suministro}_${i + 1}.jpg`, blob);
     }
 
-    // Video
-    if (recordedVideoBlob) carpeta.file(`${suministro}_video.webm`, recordedVideoBlob);
+    if (recordedVideoBlob)
+      carpeta.file(`${suministro}_video.webm`, recordedVideoBlob);
 
     const content = await zip.generateAsync({ type: "blob" });
     saveAs(content, `${suministro}.zip`);
