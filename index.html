@@ -6,7 +6,6 @@
   <title>EVIDENCIAS FOTOGRÁFICAS</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 
 <body>
@@ -16,14 +15,9 @@
     <label for="codigo-suministro">Código de Suministro:</label>
     <input type="text" id="codigo-suministro" placeholder="Ingrese código" required />
 
-    <label for="tipo-usuario">Tipo de Usuario:</label>
-    <select id="tipo-usuario">
-      <option value="titular">Titular</option>
-      <option value="beneficiario">Beneficiario</option>
-    </select>
-
     <label for="unidad">Unidad de Negocio:</label>
     <select id="unidad" required>
+      <option value="">--Seleccione Unidad--</option>
       <option value="UUNN HUANCAYO">UUNN HUANCAYO</option>
       <option value="UUNN TARMA">UUNN TARMA</option>
       <option value="UUNN HUANUCO">UUNN HUANUCO</option>
@@ -34,8 +28,6 @@
       <option value="UUNN TINGO MARIA">UUNN TINGO MARIA</option>
       <option value="UUNN PASCO">UUNN PASCO</option>
     </select>
-
-    <button id="buscar-datos">🔍 Buscar</button>
   </section>
 
   <form id="inspection-form"></form>
@@ -47,13 +39,15 @@
   </section>
 
   <section id="camara-section">
-    <h3>📷 Registro Fotográfico</h3>
+    <h3>📷 Registro Fotográfico y de Video</h3>
     <video id="video" autoplay playsinline></video>
     <canvas id="canvas" style="display:none;"></canvas><br />
     <button type="button" id="start-btn">🎬 Activar Cámara</button>
     <button type="button" id="capture-btn" disabled>📸 Tomar Foto</button>
+    <button type="button" id="video-btn" disabled>🎥 Grabar Video</button>
     <button type="button" id="reset-btn">♻️ Reiniciar</button>
     <div id="photo-thumbnails"></div>
+    <div id="video-thumbnails"></div>
   </section>
 
   <section id="acciones-finales">
