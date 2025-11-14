@@ -1,19 +1,25 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>FORMATO DE INSPECCIÓN SFV</title>
+
+  <!-- estilos -->
   <link rel="stylesheet" href="style.css" />
+
+  <!-- librerías -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </head>
 <body>
   <div class="container">
-    <h1>🔆 FORMATO DE INSPECCIÓN SFV</h1>
+    <h1>FORMATO DE INSPECCIÓN SFV</h1>
 
-    <!-- Selector de Unidad y Búsqueda -->
     <div class="busqueda">
-      <label for="unidad_negocio">Unidad de Negocio:</label>
-      <select id="unidad_negocio" required>
+      <label for="unidad_negocio">Unidad de Negocio</label>
+      <select id="unidad_negocio">
         <option value="">-- Seleccione --</option>
         <option>UUNN HUANCAYO</option>
         <option>UUNN TARMA</option>
@@ -26,47 +32,43 @@
         <option>UUNN PASCO</option>
       </select>
 
-      <input type="text" id="codigo_usuario" placeholder="Código de suministro" required />
-      <button id="btnBuscar">🔍 Buscar Titular</button>
+      <input type="text" id="codigo_usuario" placeholder="Código de suministro (ej: 00097522-C)" />
+      <button id="btnBuscar">🔍 Buscar</button>
     </div>
 
-    <!-- Formulario -->
-    <div id="inspection-form"></div>
+    <div id="inspection-form" class="form-sections"></div>
 
-    <!-- Firma -->
-    <h3>Firma del Inspector</h3>
-    <canvas id="signature" width="350" height="180"></canvas>
-    <button id="btnBorrarFirma">🧽 Borrar Firma</button>
+    <!-- firma debajo del formulario -->
+    <h2 class="small-title">Firma del inspector</h2>
+    <canvas id="signature" width="420" height="160"></canvas>
+    <div class="acciones">
+      <button id="btnBorrarFirma">🧽 Borrar firma</button>
+    </div>
 
     <hr />
 
-    <!-- Cámara -->
-    <h3>Captura Fotográfica y Video</h3>
+    <!-- cámara y controles -->
+    <h2 class="small-title">Captura fotográfica y video</h2>
     <video id="video" autoplay playsinline></video>
-    <canvas id="canvas" style="display:none;"></canvas>
+    <canvas id="photoCanvas" style="display:none;"></canvas>
 
     <div class="acciones">
-      <button id="btnIniciarCamara">📷 Activar Cámara</button>
-      <button id="btnTomarFoto" disabled>📸 Tomar Foto</button>
-      <button id="btnGrabarVideo" disabled>🎥 Grabar Video</button>
-      <button id="btnDetenerCamara" disabled>🛑 Parar Cámara</button>
+      <button id="btnIniciarCamara">📷 Activar cámara</button>
+      <button id="btnDetenerCamara" disabled>🛑 Parar cámara</button>
+      <button id="btnTomarFoto" disabled>📸 Tomar foto</button>
+      <button id="btnVideo" disabled>🎥 Grabar video</button>
     </div>
 
-    <div id="preview"></div>
+    <div id="preview" aria-live="polite"></div>
 
     <hr />
 
-    <!-- Acciones finales -->
     <div class="acciones">
       <button id="btnDescargarZIP">💾 Descargar ZIP</button>
       <button id="btnSubirDrive">☁️ Enviar a Drive</button>
+      <div id="status" class="status" aria-live="polite"></div>
     </div>
   </div>
-
-  <!-- Librerías -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
   <script src="script.js"></script>
 </body>
