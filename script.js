@@ -2,7 +2,7 @@
 // Envía reporte, fotos y video al Apps Script de Google Drive
 
 // URL de tu Apps Script publicado (reemplázalo con el tuyo)
-const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwoqjgTrz68p-_KFQAFh2Irfi77DP4pxSFZRiEYznLVmIcMvgRD_X35hbGuP9oZCt6o/exec";
+const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbx5_OV5xNFukyt6TZd_xnr7MZrcdHoNZ1uI2LccH7uulfp9wQO-ThZDJ4PhFo4bbuQb/exec";
 
 /* ====== Estado ====== */
 let fotos = [];                // dataURLs con marca de agua
